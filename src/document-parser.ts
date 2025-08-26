@@ -535,7 +535,10 @@ export class DocumentParser {
 
 				case "oMath":
 				case "oMathPara":
-					result.children.push(this.parseMathElement(el));
+					// Parse OMML and attach raw OMML element for centralized rendering
+					const mmlNode = this.parseMathElement(el);
+					mmlNode._raw = el;
+					result.children.push(mmlNode);
 					break;
 
 				case "sdt":
@@ -749,7 +752,7 @@ export class DocumentParser {
 
 	parseMathElement(elem: Element): OpenXmlElement {
 		const propsTag = `${elem.localName}Pr`;
-		const result = { type: mmlTagMap[elem.localName], children: [] } as OpenXmlElement;
+		const result = { type: mmlTagMap[elem.localName], children: [], _raw: elem } as OpenXmlElement;
 
 		for (const el of xml.elements(elem)) {
 			const childType = mmlTagMap[el.localName];

@@ -73,6 +73,8 @@ export interface OpenXmlElement {
 	className?: string; //class mods
 
     parent?: OpenXmlElement;
+    // Original XML element reference (used for centralized OMML rendering)
+    _raw?: Element;
 }
 
 export abstract class OpenXmlElementBase implements OpenXmlElement {

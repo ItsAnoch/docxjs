@@ -7,7 +7,8 @@ const umdOutput = {
 	sourcemap: true,
 	format: 'umd',
 	globals: {
-		jszip: 'JSZip'
+		jszip: 'JSZip',
+		omml2mathml: 'omml2mathml'
 	}
 };
 
@@ -15,7 +16,8 @@ export default args => {
 	const config = {
 		input: 'src/docx-preview.ts',
 		output: [umdOutput],
-		plugins: [typescript()]
+		plugins: [typescript()],
+		external: ['jszip', 'omml2mathml']
 	}
 
 	if (args.environment == 'BUILD:production')

@@ -9,6 +9,7 @@ import {
 import { CommonProperties } from './document/common';
 import { Options } from './docx-preview';
 import { DocumentElement } from './document/document';
+import { renderOmmlToHtml } from './omml-renderer';
 import { WmlParagraph } from './document/paragraph';
 import { asArray, encloseFontFamily, escapeClassName, isString, keyBy, mergeDeep } from './utils';
 import { computePixelToPoint, updateTabStop } from './javascript';
@@ -794,11 +795,28 @@ section.${c}>footer { z-index: 1; }
 			case DomType.VmlElement:
 				return this.renderVmlElement(elem as VmlElement);
 	
-			case DomType.MmlMath:
+			case DomType.MmlMath: {
+				// Centralized OMML rendering attempt
+				const html = renderOmmlToHtml(elem._raw as Element);
+				if (html) {
+					const wrapper = this.createElement('span');
+					wrapper.innerHTML = html;
+					return wrapper;
+				}
+				// Fallback to existing token-by-token MathML rendering
 				return this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
+			}
 	
-			case DomType.MmlMathParagraph:
+			case DomType.MmlMathParagraph: {
+				// Centralized OMML rendering for paragraphs as well
+				const html = renderOmmlToHtml(elem._raw as Element);
+				if (html) {
+					const wrapper = this.createElement('span');
+					wrapper.innerHTML = html;
+					return wrapper;
+				}
 				return this.renderContainer(elem, "span");
+			}
 
 			case DomType.MmlFraction:
 				return this.renderContainerNS(elem, ns.mathML, "mfrac");

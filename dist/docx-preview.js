@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'jszip'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip));
-})(this, (function (exports, JSZip) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('jszip'), require('omml2mathml')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'jszip', 'omml2mathml'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.docx = {}, global.JSZip, global.omml2mathml));
+})(this, (function (exports, JSZip, omml2mathml) { 'use strict';
 
     var RelationshipTypes;
     (function (RelationshipTypes) {
@@ -1788,7 +1788,9 @@
                         break;
                     case "oMath":
                     case "oMathPara":
-                        result.children.push(this.parseMathElement(el));
+                        const mmlNode = this.parseMathElement(el);
+                        mmlNode._raw = el;
+                        result.children.push(mmlNode);
                         break;
                     case "sdt":
                         result.children.push(...this.parseSdt(el, e => this.parseParagraph(e).children));
@@ -1958,7 +1960,7 @@
         }
         parseMathElement(elem) {
             const propsTag = `${elem.localName}Pr`;
-            const result = { type: mmlTagMap[elem.localName], children: [] };
+            const result = { type: mmlTagMap[elem.localName], children: [], _raw: elem };
             for (const el of globalXmlParser.elements(elem)) {
                 const childType = mmlTagMap[el.localName];
                 if (childType) {
@@ -2769,6 +2771,11 @@
         }
     }
 
+    function renderOmmlToHtml(omml) {
+        console.log(omml2mathml);
+        return '';
+    }
+
     const defaultTab = { pos: 0, leader: "none", style: "left" };
     const maxTabs = 50;
     function computePixelToPoint(container = document.body) {
@@ -3377,10 +3384,14 @@ section.${c}>footer { z-index: 1; }
                     return this.renderVmlPicture(elem);
                 case DomType.VmlElement:
                     return this.renderVmlElement(elem);
-                case DomType.MmlMath:
+                case DomType.MmlMath: {
+                    renderOmmlToHtml(elem._raw);
                     return this.renderContainerNS(elem, ns.mathML, "math", { xmlns: ns.mathML });
-                case DomType.MmlMathParagraph:
+                }
+                case DomType.MmlMathParagraph: {
+                    renderOmmlToHtml(elem._raw);
                     return this.renderContainer(elem, "span");
+                }
                 case DomType.MmlFraction:
                     return this.renderContainerNS(elem, ns.mathML, "mfrac");
                 case DomType.MmlBase:
