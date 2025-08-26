@@ -103,22 +103,14 @@
     }
 
     const ns$1 = {
-        wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-        drawingml: "http://schemas.openxmlformats.org/drawingml/2006/main",
-        picture: "http://schemas.openxmlformats.org/drawingml/2006/picture",
-        compatibility: "http://schemas.openxmlformats.org/markup-compatibility/2006",
-        math: "http://schemas.openxmlformats.org/officeDocument/2006/math"
-    };
+        wordml: "http://schemas.openxmlformats.org/wordprocessingml/2006/main"};
     const LengthUsage = {
         Dxa: { mul: 0.05, unit: "pt" },
         Emu: { mul: 1 / 12700, unit: "pt" },
         FontSize: { mul: 0.5, unit: "pt" },
         Border: { mul: 0.125, unit: "pt", min: 0.25, max: 12 },
         Point: { mul: 1, unit: "pt" },
-        Percent: { mul: 0.02, unit: "%" },
-        LineHeight: { mul: 1 / 240, unit: "" },
-        VmlEmu: { mul: 1 / 12700, unit: "" },
-    };
+        Percent: { mul: 0.02, unit: "%" }};
     function convertLength(val, usage = LengthUsage.Dxa) {
         if (val == null || /.+(p[xt]|[%])$/.test(val)) {
             return val;
@@ -2135,20 +2127,32 @@
             var result = { type: DomType.Image, src: "", cssStyle: {} };
             var blipFill = globalXmlParser.element(elem, "blipFill");
             var blip = globalXmlParser.element(blipFill, "blip");
+            var srcRect = globalXmlParser.element(blipFill, "srcRect");
             result.src = globalXmlParser.attr(blip, "embed");
+            if (srcRect) {
+                result.srcRect = [
+                    globalXmlParser.intAttr(srcRect, "l", 0) / 100000,
+                    globalXmlParser.intAttr(srcRect, "t", 0) / 100000,
+                    globalXmlParser.intAttr(srcRect, "r", 0) / 100000,
+                    globalXmlParser.intAttr(srcRect, "b", 0) / 100000,
+                ];
+            }
             var spPr = globalXmlParser.element(elem, "spPr");
             var xfrm = globalXmlParser.element(spPr, "xfrm");
             result.cssStyle["position"] = "relative";
-            for (var n of globalXmlParser.elements(xfrm)) {
-                switch (n.localName) {
-                    case "ext":
-                        result.cssStyle["width"] = globalXmlParser.lengthAttr(n, "cx", LengthUsage.Emu);
-                        result.cssStyle["height"] = globalXmlParser.lengthAttr(n, "cy", LengthUsage.Emu);
-                        break;
-                    case "off":
-                        result.cssStyle["left"] = globalXmlParser.lengthAttr(n, "x", LengthUsage.Emu);
-                        result.cssStyle["top"] = globalXmlParser.lengthAttr(n, "y", LengthUsage.Emu);
-                        break;
+            if (xfrm) {
+                result.rotation = globalXmlParser.intAttr(xfrm, "rot", 0) / 60000;
+                for (var n of globalXmlParser.elements(xfrm)) {
+                    switch (n.localName) {
+                        case "ext":
+                            result.cssStyle["width"] = globalXmlParser.lengthAttr(n, "cx", LengthUsage.Emu);
+                            result.cssStyle["height"] = globalXmlParser.lengthAttr(n, "cy", LengthUsage.Emu);
+                            break;
+                        case "off":
+                            result.cssStyle["left"] = globalXmlParser.lengthAttr(n, "x", LengthUsage.Emu);
+                            result.cssStyle["top"] = globalXmlParser.lengthAttr(n, "y", LengthUsage.Emu);
+                            break;
+                    }
                 }
             }
             return result;
@@ -2240,6 +2244,7 @@
                         result.children.push(this.parseTableCell(c));
                         break;
                     case "trPr":
+                    case "tblPrEx":
                         this.parseTableRowProperties(c, result);
                         break;
                 }
@@ -3547,7 +3552,16 @@ section.${c}>footer { z-index: 1; }
         }
         renderImage(elem) {
             let result = this.createElement("img");
+            let transform = elem.cssStyle?.transform;
             this.renderStyleValues(elem.cssStyle, result);
+            if (elem.srcRect && elem.srcRect.some(x => x != 0)) {
+                var [left, top, right, bottom] = elem.srcRect;
+                transform = `scale(${1 / (1 - left - right)}, ${1 / (1 - top - bottom)})`;
+                result.style['clip-path'] = `rect(${(100 * top).toFixed(2)}% ${(100 * (1 - right)).toFixed(2)}% ${(100 * (1 - bottom)).toFixed(2)}% ${(100 * left).toFixed(2)}%)`;
+            }
+            if (elem.rotation)
+                transform = `rotate(${elem.rotation}deg) ${transform ?? ''}`;
+            result.style.transform = transform?.trim();
             if (this.document) {
                 this.tasks.push(this.document.loadDocumentImage(elem.src, this.currentPart).then(x => {
                     result.src = x;
