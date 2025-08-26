@@ -6,11 +6,14 @@
 import omml2mathml from 'omml2mathml';
 
 export function renderOmmlToHtml(omml: Element | null | undefined): string {
-    console.log(omml2mathml);
-    // TODO: Implement using an external converter, e.g.:
-    //   import omml2mathml from 'omml2mathml';
-    //   const mathMlNode = omml2mathml(omml);
-    //   return mathMlNode?.outerHTML ?? '';
-    // Intentionally returning empty string to let renderer fall back to built-in MathML mapping.
-    return '';
+    if (!omml) return '';
+    try {
+        const node: any = omml2mathml(omml);
+        if (!node) return '';
+        console.log(node);
+        // Prefer outerHTML if node is Element; otherwise if string, return it.
+        return typeof node === 'string' ? node : (node.outerHTML ?? '');
+    } catch {
+        return '';
+    }
 }

@@ -1,5 +1,7 @@
 import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
 
 const umdOutput = {
 	name: "docx",
@@ -7,8 +9,7 @@ const umdOutput = {
 	sourcemap: true,
 	format: 'umd',
 	globals: {
-		jszip: 'JSZip',
-		omml2mathml: 'omml2mathml'
+	jszip: 'JSZip'
 	}
 };
 
@@ -16,8 +17,8 @@ export default args => {
 	const config = {
 		input: 'src/docx-preview.ts',
 		output: [umdOutput],
-		plugins: [typescript()],
-		external: ['jszip', 'omml2mathml']
+		plugins: [resolve({ browser: true }), commonjs(), typescript()],
+		external: ['jszip']
 	}
 
 	if (args.environment == 'BUILD:production')
