@@ -136,12 +136,10 @@ export function renderOmmlToHtml(omml: Element | null | undefined): string {
     try {
     const node: any = omml2mathml(omml);
     if (!node) return '';
-    console.log(node);
     // Normalize deprecated MathML to modern constructs (e.g., replace <mfenced>)
     const mathml = typeof node === 'string' ? node : (node.outerHTML ?? '');
     return normalizeMathML(mathml);
     } catch (e) {
-        console.log(e);
         return '';
     }
 }

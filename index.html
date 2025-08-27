@@ -69,7 +69,9 @@
         const docxOptions = Object.assign(docx.defaultOptions, {
             debug: true,
             experimental: true,
-            hideWrapperOnPrint: true
+            hideWrapperOnPrint: true,
+            // Disable built-in image preprocessing in demo
+            preprocessImages: false
         });
 
         const container = document.querySelector("#document-container");

@@ -301,7 +301,10 @@
             this._zip.file(path, content);
         }
         static async load(input, options) {
-            const zip = await JSZip.loadAsync(input);
+            let zip = await JSZip.loadAsync(input);
+            if (options?.preprocessImages) {
+                zip = await preprocessImagesInZip(zip);
+            }
             return new OpenXmlPackage(zip, options);
         }
         save(type = "blob") {
@@ -325,6 +328,61 @@
     }
     function normalizePath(path) {
         return path.startsWith('/') ? path.substr(1) : path;
+    }
+    async function preprocessImagesInZip(zip) {
+        const tiffFiles = zip.file(/[.]tiff?$/i) || [];
+        if (!tiffFiles.length)
+            return zip;
+        for (const f of tiffFiles) {
+            try {
+                const buf = await f.async("uint8array");
+                const pngBlob = await tiffToPngBlob(buf);
+                if (pngBlob) {
+                    zip.file(f.name, pngBlob);
+                }
+            }
+            catch (e) {
+                console && console.warn && console.warn("DOCX: TIFF preprocess failed for", f.name, e);
+            }
+        }
+        const blob = await zip.generateAsync({ type: "blob" });
+        return await JSZip.loadAsync(blob);
+    }
+    async function tiffToPngBlob(buffer) {
+        const anyGlobal = globalThis;
+        const UTIF = anyGlobal?.UTIF;
+        if (UTIF && typeof UTIF.decode === "function") {
+            try {
+                const ifds = UTIF.decode(buffer);
+                if (!ifds?.length)
+                    return null;
+                UTIF.decodeImage(buffer, ifds[0]);
+                const rgba = UTIF.toRGBA8(ifds[0]);
+                const { width, height } = ifds[0];
+                return rgbaToPngBlob(rgba, width, height);
+            }
+            catch { }
+        }
+        const Tiff = anyGlobal?.Tiff;
+        if (Tiff) {
+            try {
+                const t = new Tiff({ buffer });
+                const canvas = t.toCanvas();
+                return await new Promise(res => canvas.toBlob(b => res(b), "image/png"));
+            }
+            catch { }
+        }
+        return null;
+    }
+    function rgbaToPngBlob(rgba, width, height) {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        const imageData = ctx.createImageData(width, height);
+        imageData.data.set(rgba);
+        ctx.putImageData(imageData, 0, 0);
+        return new Promise(res => canvas.toBlob(b => res(b), "image/png"));
     }
 
     class DocumentPart extends Part {
@@ -9814,12 +9872,10 @@
             const node = omml2mathml(omml);
             if (!node)
                 return '';
-            console.log(node);
             const mathml = typeof node === 'string' ? node : (node.outerHTML ?? '');
             return normalizeMathML(mathml);
         }
         catch (e) {
-            console.log(e);
             return '';
         }
     }
@@ -11039,6 +11095,7 @@ section.${c}>footer { z-index: 1; }
         inWrapper: true,
         hideWrapperOnPrint: false,
         trimXmlDeclaration: true,
+        preprocessImages: true,
         ignoreLastRenderedPageBreak: true,
         renderHeaders: true,
         renderFooters: true,

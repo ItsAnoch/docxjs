@@ -13,6 +13,11 @@ export interface Options {
     experimental: boolean;
     className: string;
     trimXmlDeclaration: boolean;
+    /**
+     * Preprocess embedded images inside the .docx before parsing (e.g., convert TIFF to PNG).
+     * Enabled by default.
+     */
+    preprocessImages: boolean;
     renderHeaders: boolean;
     renderFooters: boolean;
     renderFootnotes: boolean;
@@ -35,6 +40,7 @@ export const defaultOptions: Options = {
     inWrapper: true,
     hideWrapperOnPrint: false,
     trimXmlDeclaration: true,
+    preprocessImages: true,
     ignoreLastRenderedPageBreak: true,
     renderHeaders: true,
     renderFooters: true,
