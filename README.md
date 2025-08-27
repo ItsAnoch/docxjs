@@ -1,10 +1,16 @@
 [![npm version](https://badge.fury.io/js/docx-preview.svg)](https://www.npmjs.com/package/docx-preview)
-[![Support Ukraine](https://img.shields.io/badge/Support-Ukraine-blue?style=flat&logo=adguard)](https://war.ukraine.ua/)
 
 # docxjs
 Docx rendering library
 
 Demo - https://volodymyrbaydalka.github.io/docxjs/
+
+## Fork and credits
+
+This repository is a fork of the original docxjs project by Volodymyr Baydalka.
+
+- Original repository: https://github.com/VolodymyrBaydalka/docxjs
+- All credit for the original design and most of the implementation goes to the upstream author and contributors.
 
 Goal
 ----

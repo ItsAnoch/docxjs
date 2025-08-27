@@ -9717,8 +9717,79 @@
     var omml2mathmlExports = requireOmml2mathml();
     var omml2mathml = /*@__PURE__*/getDefaultExportFromCjs(omml2mathmlExports);
 
+    function normalizeMathML(input) {
+        const MML_NS = 'http://www.w3.org/1998/Math/MathML';
+        let rootEl = null;
+        if (typeof input === 'string') {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(input, 'application/xml');
+                rootEl = (doc.documentElement?.nodeType === 1 ? doc.documentElement : null);
+            }
+            catch {
+                return typeof input === 'string' ? input : input?.outerHTML ?? '';
+            }
+        }
+        else {
+            rootEl = input;
+        }
+        if (!rootEl) {
+            return '';
+        }
+        const createMo = (text) => {
+            const mo = rootEl.ownerDocument.createElementNS(MML_NS, 'mo');
+            mo.textContent = text;
+            return mo;
+        };
+        const transformMfenced = (mfenced) => {
+            const doc = mfenced.ownerDocument;
+            const mrow = doc.createElementNS(MML_NS, 'mrow');
+            for (let i = 0; i < mfenced.attributes.length; i++) {
+                const attr = mfenced.attributes[i];
+                if (attr.name === 'open' || attr.name === 'close' || attr.name === 'separators')
+                    continue;
+                mrow.setAttribute(attr.name, attr.value);
+            }
+            const open = mfenced.getAttribute('open');
+            const close = mfenced.getAttribute('close');
+            const sepsAttr = mfenced.getAttribute('separators');
+            const openStr = open !== null ? open : '(';
+            const closeStr = close !== null ? close : ')';
+            const separatorsStr = sepsAttr !== null ? sepsAttr : ',';
+            const children = Array.from(mfenced.children);
+            if (openStr.length > 0) {
+                mrow.appendChild(createMo(openStr));
+            }
+            const sepChars = Array.from(separatorsStr);
+            children.forEach((child, idx) => {
+                mrow.appendChild(child);
+                const needSep = idx < children.length - 1;
+                if (!needSep)
+                    return;
+                if (sepChars.length === 0)
+                    return;
+                const sep = sepChars[Math.min(idx, sepChars.length - 1)];
+                if (sep && sep.length > 0) {
+                    mrow.appendChild(createMo(sep));
+                }
+            });
+            if (closeStr.length > 0) {
+                mrow.appendChild(createMo(closeStr));
+            }
+            mfenced.replaceWith(mrow);
+        };
+        const toTransform = [];
+        toTransform.push(...Array.from(rootEl.getElementsByTagName('mfenced')));
+        if (rootEl.localName && rootEl.localName.toLowerCase() === 'mfenced') {
+            toTransform.push(rootEl);
+        }
+        for (let i = toTransform.length - 1; i >= 0; i--) {
+            transformMfenced(toTransform[i]);
+        }
+        const serialized = rootEl.outerHTML ?? new XMLSerializer().serializeToString(rootEl);
+        return serialized;
+    }
     function renderOmmlToHtml(omml) {
-        console.log(omml);
         if (!omml)
             return '';
         try {
@@ -9726,7 +9797,8 @@
             if (!node)
                 return '';
             console.log(node);
-            return typeof node === 'string' ? node : (node.outerHTML ?? '');
+            const mathml = typeof node === 'string' ? node : (node.outerHTML ?? '');
+            return normalizeMathML(mathml);
         }
         catch {
             return '';

@@ -1,18 +1,27 @@
 {
-  "name": "docx-preview",
-  "version": "0.3.6",
+  "name": "@anoch/docx-preview",
+  "version": "0.4.6-anoch.0",
+  "description": "Fork of docx-preview with additional fixes and maintenance. Original work by Volodymyr Baydalka.",
   "license": "Apache-2.0",
   "keywords": [
     "word",
-    "docx"
+    "docx",
+    "docx-preview",
+    "office",
+    "document",
+    "viewer"
   ],
   "author": {
-    "name": "Volodymyr Baydalka"
+    "name": "Anoch Jeyakanthan"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zVolodymyr/docxjs.git"
+    "url": "git+https://github.com/ItsAnoch/docxjs.git"
   },
+  "bugs": {
+    "url": "https://github.com/ItsAnoch/docxjs/issues"
+  },
+  "homepage": "https://github.com/ItsAnoch/docxjs#readme",
   "dependencies": {
     "jszip": ">=3.0.0",
     "omml2mathml": "^1.3.0"
@@ -49,5 +58,8 @@
       "types": "./dist/docx-preview.d.ts"
     }
   },
-  "types": "dist/docx-preview.d.ts"
+  "types": "dist/docx-preview.d.ts",
+  "publishConfig": {
+    "access": "public"
+  }
 }
