@@ -1,6 +1,6 @@
 {
   "name": "@anoch/docx-preview",
-  "version": "0.4.6-anoch.1",
+  "version": "0.4.6-anoch.2",
   "description": "Fork of docx-preview with additional fixes and maintenance. Original work by Volodymyr Baydalka.",
   "license": "Apache-2.0",
   "keywords": [
