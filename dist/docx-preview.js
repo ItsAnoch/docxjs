@@ -9722,8 +9722,26 @@
         let rootEl = null;
         if (typeof input === 'string') {
             try {
+                const sanitizeToXmlSafe = (s) => {
+                    const map = {
+                        '&nbsp;': '\u00A0',
+                        '&ensp;': '\u2002',
+                        '&emsp;': '\u2003',
+                        '&thinsp;': '\u2009',
+                        '&times;': '\u00D7',
+                        '&middot;': '\u00B7',
+                        '&minus;': '\u2212'
+                    };
+                    return s.replace(/&[a-zA-Z]+;/g, (m) => map[m] ?? m);
+                };
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(input, 'application/xml');
+                const safe = sanitizeToXmlSafe(input);
+                const doc = parser.parseFromString(safe, 'application/xml');
+                const isParserError = doc.getElementsByTagName('parsererror').length > 0
+                    || doc.documentElement?.localName?.toLowerCase() === 'parsererror';
+                if (isParserError) {
+                    return input;
+                }
                 rootEl = (doc.documentElement?.nodeType === 1 ? doc.documentElement : null);
             }
             catch {
@@ -9800,7 +9818,8 @@
             const mathml = typeof node === 'string' ? node : (node.outerHTML ?? '');
             return normalizeMathML(mathml);
         }
-        catch {
+        catch (e) {
+            console.log(e);
             return '';
         }
     }

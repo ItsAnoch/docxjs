@@ -15,8 +15,30 @@ function normalizeMathML(input: Element | string): string {
     let rootEl: Element | null = null;
     if (typeof input === 'string') {
         try {
+            // Replace HTML named entities that aren't defined in XML (e.g., &nbsp;)
+            // Use Unicode characters to keep the content valid for XML parsing.
+            const sanitizeToXmlSafe = (s: string) => {
+                const map: Record<string, string> = {
+                    '&nbsp;': '\u00A0',
+                    '&ensp;': '\u2002',
+                    '&emsp;': '\u2003',
+                    '&thinsp;': '\u2009',
+                    '&times;': '\u00D7',
+                    '&middot;': '\u00B7',
+                    '&minus;': '\u2212'
+                };
+                return s.replace(/&[a-zA-Z]+;/g, (m) => map[m] ?? m);
+            };
+
             const parser = new DOMParser();
-            const doc = parser.parseFromString(input, 'application/xml');
+            const safe = sanitizeToXmlSafe(input);
+            const doc = parser.parseFromString(safe, 'application/xml');
+            // Guard against parsererror documents (DOMParser doesn't throw for XML errors)
+            const isParserError = doc.getElementsByTagName('parsererror').length > 0
+                || doc.documentElement?.localName?.toLowerCase() === 'parsererror';
+            if (isParserError) {
+                return input; // fall back to original string without normalization
+            }
             rootEl = (doc.documentElement?.nodeType === 1 ? doc.documentElement as Element : null);
         } catch {
             // If parsing fails, just return the original string
@@ -118,7 +140,8 @@ export function renderOmmlToHtml(omml: Element | null | undefined): string {
     // Normalize deprecated MathML to modern constructs (e.g., replace <mfenced>)
     const mathml = typeof node === 'string' ? node : (node.outerHTML ?? '');
     return normalizeMathML(mathml);
-    } catch {
+    } catch (e) {
+        console.log(e);
         return '';
     }
 }
