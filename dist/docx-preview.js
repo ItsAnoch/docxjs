@@ -9718,6 +9718,7 @@
     var omml2mathml = /*@__PURE__*/getDefaultExportFromCjs(omml2mathmlExports);
 
     function renderOmmlToHtml(omml) {
+        console.log(omml);
         if (!omml)
             return '';
         try {

@@ -112,3 +112,55 @@ So far I can't come up with final approach of parsing documents and final struct
 Contributing
 ------
 Please do not include contents of `./dist` folder in your PR's. Otherwise I most likely will reject it due to stability and security concerns.
+
+## Math equations (OMML → MathML) rendering
+
+What was broken
+----------------
+Modern browsers, especially Chromium-based, implement MathML Core, which removes or ignores a number of legacy/deprecated MathML features. Our previous OMML→Math rendering path could emit deprecated MathML like `<mfenced>` for parentheses/brackets and separators. As a result, equations sometimes rendered without fences/separators or with inconsistent spacing.
+
+What we changed
+----------------
+- Replaced the entire equation rendering pipeline: we now convert OMML to MathML using `omml2mathml`, and then run a normalization pass in `src/omml-renderer.ts`.
+- The normalizer rewrites deprecated `<mfenced>` nodes to standard MathML Core-friendly structure using `<mrow>` with explicit `<mo>` operators for:
+    - opening fence (e.g., `(`, `[`, `|`)
+    - separators between arguments (e.g., `,`)
+    - closing fence (e.g., `)`, `]`, `|`)
+
+Previously, only some equations would render; now they all properly render. This makes generated MathML more robust across engines that don’t support `<mfenced>`.
+
+Known edge cases and limitations
+--------------------------------
+The normalization focuses on the most common breakage (fences/separators). Some MathML constructs emitted by converters are partially or not supported in MathML Core and may still need special handling:
+
+- mtable/mtr/mtd (matrices, cases)
+    - Support varies in Core. Rich alignment/lines can fail. We currently don’t rewrite tables; very complex matrices/cases may render inconsistently.
+
+- mstyle and presentational attributes (mathcolor, mathbackground, mathsize, displaystyle, scriptlevel, etc.)
+    - Not part of MathML Core; may be ignored by some engines. Styling could appear lost unless mirrored in CSS. Future work: unwrap `mstyle` and move styling to CSS.
+
+- semantics/annotation-xml
+    - `annotation-xml` is not widely supported. If present, it can interfere with rendering. Future work: unwrap to the first renderable child.
+
+- mfrac with bevelled="true"
+    - Bevelled fractions are not in Core. Future work: linearize as `mrow <numerator> <mo>/</mo> <denominator>`.
+
+- mathvariant for special alphabets (double‑struck, fraktur, script)
+    - Not reliably supported without fonts. Consider using Unicode code points or CSS/webfonts.
+
+- mmultiscripts (general tensor indices)
+    - Not in Core and hard to rewrite generically. Future work: map simple cases to `msubsup` where possible.
+
+- Operator attributes (largeop, movablelimits, lspace/rspace, linebreak, form, fence/separator flags)
+    - Many are ignored in Core; spacing/limits behavior may differ. Prefer structural elements (`munderover`, `msubsup`) and CSS spacing.
+
+Troubleshooting tips
+--------------------
+- If equations appear without parentheses/separators, ensure you’re using a build including `src/omml-renderer.ts` normalization (version ≥ the commit that mentions “equation rendering”).
+- For matrices/cases that look off, consider rendering to HTML tables or opening an issue with a minimal DOCX.
+- If stylistic differences show up (colors/sizes), mirror styles via CSS on the MathML elements.
+
+Notes
+-----
+- The core fix is safe: converting `<mfenced>` to `<mrow>` with explicit `<mo>` mirrors standard MathML examples and avoids deprecated constructs.
+- We’ll iterate on additional normalizations as needed; feel free to file issues with sample documents.
